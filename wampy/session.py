@@ -7,6 +7,7 @@ from wampy.messages import Message
 from wampy.messages.handlers.default import MessageHandler
 from wampy.messages.hello import Hello
 from wampy.messages.goodbye import Goodbye
+from wampy.messages.authenticate import Authenticate
 from wampy.transports.websocket.connection import WebSocket, TLSWebSocket
 
 from wampy.messages import MESSAGE_TYPE_MAP
@@ -16,7 +17,7 @@ logger = logging.getLogger('wampy.session')
 
 
 def session_builder(
-        client, router, realm, transport="ws", message_handler=None
+        client, router, realm, transport="ws", message_handler=None, onchallenge=None
 ):
     if transport == "ws":
         use_tls = router.can_use_tls
@@ -32,7 +33,7 @@ def session_builder(
 
     return Session(
         client=client, router=router, realm=realm, transport=transport,
-        message_handler=message_handler,
+        message_handler=message_handler, onchallenge=onchallenge
     )
 
 
@@ -55,7 +56,7 @@ class Session(object):
 
     """
 
-    def __init__(self, client, router, realm, transport, message_handler=None):
+    def __init__(self, client, router, realm, transport, message_handler=None, onchallenge=None):
         """ A Session between a Client and a Router.
 
         :Parameters:
@@ -73,6 +74,7 @@ class Session(object):
         self.router = router
         self.realm = realm
         self.transport = transport
+        self.onchallenge = onchallenge
 
         self.subscription_map = {}
         self.registration_map = {}
@@ -165,9 +167,20 @@ class Session(object):
         message = Hello(self.realm, self.roles)
         self.send_message(message)
         response = self.recv_message()
+        wamp_code, session_id, _ = response
+
+        # the server may request us to authenticate
+        if wamp_code == Message.CHALLENGE:
+            logger.debug('received challenge from server')
+            if not self.onchallenge:
+                raise WampError('Unable to respond to challenge as onchallenge has not been defined')
+            signature = self.onchallenge(message)
+            message = Authenticate(signature)
+            self.send_message(message)
+            response = self.recv_message()
+            wamp_code, session_id, _ = response
 
         # response message must be either WELCOME or ABORT
-        wamp_code, session_id, _ = response
         if wamp_code not in [Message.WELCOME, Message.ABORT]:
             raise WampError(
                 'unexpected response from HELLO message: {}'.format(

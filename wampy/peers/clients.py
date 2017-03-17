@@ -20,7 +20,7 @@ class Client(object):
 
     def __init__(
             self, router, roles=DEFAULT_ROLES, realm=DEFAULT_REALM,
-            transport="ws", message_handler=None, id=None,
+            transport="ws", message_handler=None, id=None, onchallenge=None
     ):
         self.roles = roles
         self.realm = realm
@@ -28,7 +28,8 @@ class Client(object):
         self.transport = transport
         self.session = session_builder(
             client=self, router=self.router, realm=self.realm,
-            transport=self.transport, message_handler=message_handler)
+            transport=self.transport, message_handler=message_handler,
+            onchallenge=onchallenge)
 
         self.id = id or str(uuid4())
 

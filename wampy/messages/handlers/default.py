@@ -3,7 +3,7 @@ import logging
 from wampy.messages import MESSAGE_TYPE_MAP
 from wampy.messages import (
     Goodbye, Error, Event, Invocation, Registered, Result, Subscribed,
-    Welcome, Yield)
+    Welcome, Yield, Challenge)
 from wampy.errors import WampyError
 
 logger = logging.getLogger('wampy.messagehandler')
@@ -32,6 +32,7 @@ class MessageHandler(object):
         if messages_to_handle is None:
             # the rationale here is as follows:-
             # Welcome: mandatory for Session establishment
+            # Challenge: used for authentication
             # Goodbye: mandatory because GOODBYE is echoed by the Router
             # Registered: a client is likely to be a Callee
             # Invocation: same as above
@@ -41,7 +42,7 @@ class MessageHandler(object):
             # Subscribed: because a client is likely to be a Subscriber
             # Event: sames as above
             self.messages_to_handle = [
-                Welcome, Goodbye, Registered, Invocation, Yield, Result,
+                Welcome, Challenge, Goodbye, Registered, Invocation, Yield, Result,
                 Error, Subscribed, Event
             ]
         else:
