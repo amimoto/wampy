@@ -198,7 +198,12 @@ class TLSWebSocket(WebSocket):
         self.host = host
         self.port = port
         self.websocket_location = websocket_location.lstrip('/')
-        self.ssl_version = ssl_version or ssl.PROTOCOL_TLSv1_2
+        if ssl_version:
+            self.ssl_version = ssl_version
+        elif hasattr(ssl,'PROTOCOL_TLSv1_2'):
+            self.ssl_version = ssl_version or ssl.PROTOCOL_TLSv1_2
+        else:
+            self.ssl_version = ssl_version or ssl.PROTOCOL_TLSv1
         self.key = encodestring(uuid.uuid4().bytes).decode('utf-8').strip()
         self.certificate = certificate
 
